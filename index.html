@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Viabilità Mugello</title>
+<meta name="description" content="Mappa di lavori stradali, chiusure, cantieri, sfalci, deviazioni e incidenti in Mugello e Val di Sieve.">
+<meta name="theme-color" content="#1f2a44">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#" id="home">
+    <img src="icons/icon.svg" alt="" width="34" height="34">
+    <span><strong>Viabilità Mugello</strong><small>Lavori, chiusure e deviazioni</small></span>
+  </a>
+  <nav class="azioni">
+    <button type="button" id="b-bollettino" class="btn chiaro">Bollettino</button>
+    <a href="note-legali.html" class="btn chiaro" style="text-decoration:none">Note legali</a>
+    <button type="button" id="b-coda" class="btn chiaro solo-editor" hidden>Da mappare <b id="n-coda"></b></button>
+    <button type="button" id="b-cestino" class="btn chiaro solo-editor">Cestino</button>
+    <button type="button" id="b-nuovo" class="btn giallo solo-editor">+ Nuovo</button>
+  </nav>
+</header>
+
+<div class="vista" id="vista">
+  <button type="button" data-v="lista" class="on">Elenco</button>
+  <button type="button" data-v="mappa">Mappa</button>
+</div>
+
+<main class="layout">
+  <aside class="side" id="side">
+    <!-- elenco e filtri -->
+    <div id="pannello-lista">
+      <div class="cerca">
+        <input id="q" type="search" placeholder="Cerca via, paese o evento…" autocomplete="off" aria-label="Cerca">
+        <ol id="luoghi" class="luoghi" hidden></ol>
+      </div>
+
+      <section class="blocco">
+        <h2>Periodo</h2>
+        <div class="segmenti sei" id="quando">
+          <button type="button" data-q="oggi">Oggi</button>
+          <button type="button" data-q="domani">Domani</button>
+          <button type="button" data-q="settimana">7 giorni</button>
+          <button type="button" data-q="attivi" class="on">Tutti attivi</button>
+          <button type="button" data-q="periodo">Date…</button>
+          <button type="button" data-q="conclusi">Conclusi</button>
+        </div>
+        <div class="periodo" id="periodo" hidden>
+          <label>dal <input type="date" id="p-dal"></label>
+          <label>al <input type="date" id="p-al"></label>
+        </div>
+      </section>
+
+      <section class="blocco due">
+        <div><h2><label for="f-comune">Comune</label></h2><select id="f-comune" class="scelta"></select></div>
+        <div><h2><label for="f-strada">Strada</label></h2><select id="f-strada" class="scelta"></select></div>
+      </section>
+
+      <section class="blocco">
+        <h2>Tipo</h2>
+        <div class="chips" id="tipi"></div>
+      </section>
+
+      <section class="blocco">
+        <div class="riga-titolo">
+          <h2 id="conteggio">Eventi</h2>
+          <label class="raggruppa">Raggruppa <select id="raggruppa">
+            <option value="stato">per stato</option><option value="strada">per strada</option>
+            <option value="comune">per Comune</option><option value="tipo">per tipo</option></select></label>
+        </div>
+        <div id="lista" class="lista"></div>
+      </section>
+
+      <div class="legenda" id="legenda"></div>
+      <p class="nota" id="fonti"></p>
+      <p class="nota" id="attribuzioni">Ogni evento indica l'atto ufficiale da cui è tratto: fa fede l'atto. Mappe, località e confini: © OpenStreetMap (ODbL); grafo stradale, cippi e civici: Città Metropolitana di Firenze (CC-BY); sentieri: Waymarked Trails (CC-BY-SA). <a href="note-legali.html">Note legali</a></p>
+    </div>
+
+    <!-- scheda evento -->
+    <article id="pannello-scheda" hidden></article>
+
+    <!-- editor -->
+    <form id="pannello-editor" hidden autocomplete="off"></form>
+  </aside>
+
+  <section class="mappa-wrap" id="mappa-wrap">
+    <div id="mappa" role="application" aria-label="Mappa della viabilità"></div>
+    <div class="disegno" id="disegno" hidden>
+      <p id="disegno-testo"></p>
+      <div>
+        <button type="button" class="btn chiaro" id="d-indietro">Togli ultimo punto</button>
+        <button type="button" class="btn chiaro" id="d-esci">Annulla</button>
+        <button type="button" class="btn giallo" id="d-fatto">Fatto</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="finestra">
+  <div class="finestra-testa"><h2 id="finestra-titolo"></h2><button type="button" class="x" id="finestra-chiudi" aria-label="Chiudi">×</button></div>
+  <div id="finestra-corpo"></div>
+</dialog>
+
+<div class="avviso" id="avviso" role="status" hidden></div>
+
+<script src="vendor/leaflet.js"></script>
+<script>window.PUBBLICO = true;</script>
+<script src="app.js"></script>
+</body>
+</html>
