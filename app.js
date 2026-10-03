@@ -295,7 +295,7 @@ async function caricaTelecamere() {
   } catch { avviso('Telecamere non disponibili'); }
 }
 function legenda() {
-  let h = `<b>Eventi</b><span class="lg pieno"></span> tratto interessato <span class="lg puntini"></span> posizione indicativa (cantieri che si spostano lungo la strada) <span class="lg tratteggio"></span> deviazione <span class="lg sbiadito"></span> non ancora iniziato`;
+  let h = `<b>Eventi</b><span class="lg pieno"></span> tratto interessato <span class="lg puntini"></span> ${PUBBLICO ? 'posizione indicativa (cantieri che si spostano lungo la strada)' : 'evento da verificare (posizione approssimata)'} <span class="lg tratteggio"></span> deviazione <span class="lg sbiadito"></span> non ancora iniziato`;
   if (mappa.hasLayer(livStrade)) h += `<b>Tipi di strada</b>` + Object.values(TIPI_STRADA).map((t) => `<span class="lg strada" style="border-top-color:${t.colore}"></span> ${t.nome}`).join(' ') + ` <span class="lg strada" style="border-top-color:#ccc"></span> comunali e locali (mappa di base)`;
   if (mappa.hasLayer(sentieri)) h += `<b>Sentieri</b><span class="lg sentiero"></span> sentieri segnati (CAI e reti escursionistiche)`;
   if (mappa.hasLayer(osm)) h += `<b>Mappa di base</b><span class="lg bianca"></span> strade bianche e sterrate`;
