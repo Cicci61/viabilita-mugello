@@ -61,7 +61,11 @@ function periodo(ev) {
 }
 
 /* ---------- stato rispetto al giorno scelto ---------- */
-function stato(ev, g = S.oggi) {
+// giorno a cui si riferisce la vista: Domani = domani, Date = primo giorno scelto, altrimenti oggi
+function giornoRif() { const r = intervallo(); return r ? r[0] : S.oggi; }
+// con "7 giorni" e "Date" un evento che comincia dentro il periodo va mostrato pieno, non sbiadito
+function arrivaNelPeriodo(ev) { return (S.quando === 'settimana' || S.quando === 'periodo') && stato(ev) === 'programmato'; }
+function stato(ev, g = giornoRif()) {
   if (ev.risolto) return 'concluso';
   if (ev.al && ev.al < g) return 'concluso';
   if (ev.dal && ev.dal > g) return 'programmato';
@@ -70,7 +74,7 @@ function stato(ev, g = S.oggi) {
 function etichettaStato(ev) {
   const st = stato(ev);
   if (st === 'in-corso') return ev.al ? `In corso, fino al ${dataBreve(ev.al)}` : 'In corso';
-  if (st === 'programmato') return `Dal ${dataBreve(ev.dal)}`;
+  if (st === 'programmato') return arrivaNelPeriodo(ev) ? `Comincia ${dataLunga(ev.dal)}` : `Dal ${dataBreve(ev.dal)}`;
   return ev.risolto ? 'Risolto' : 'Concluso';
 }
 // 'SP 117', 'SR 302', 'A1'... dal campo sigla o dal testo della strada; altrimenti il nome della via
@@ -89,7 +93,7 @@ function intervallo() {
   const o = S.oggi;
   if (S.quando === 'oggi') return [o, o];
   if (S.quando === 'domani') return [piuGiorni(o, 1), piuGiorni(o, 1)];
-  if (S.quando === 'settimana') return [o, piuGiorni(o, 7)];
+  if (S.quando === 'settimana') return [o, piuGiorni(o, 6)];  // oggi più i 6 giorni dopo = 7 giorni
   if (S.quando === 'periodo') return [S.pDal || o, S.pAl || S.pDal || o];
   return null;
 }
@@ -178,13 +182,14 @@ function iconaPin(ev, extra = '') {
   const t = TIPI[ev.tipo] || TIPI.lavori;
   const st = stato(ev);
   const col = st === 'concluso' ? '#868e96' : t.colore;
-  return L.divIcon({ className: `pin ${st} ${extra}`, iconSize: [30, 30], iconAnchor: [15, 15],
-    html: `<span style="background:${col}">${t.sim}</span>` });
+  const arriva = arrivaNelPeriodo(ev);
+  return L.divIcon({ className: `pin ${arriva ? 'arriva' : st} ${extra}`, iconSize: [30, 30], iconAnchor: [15, 15],
+    html: `<span style="background:${col}">${t.sim}</span>${arriva ? `<em>dal ${dataBreve(ev.dal)}</em>` : ''}` });
 }
 function disegnaEvento(ev, gruppo, interattivo = true) {
   const t = TIPI[ev.tipo] || TIPI.lavori;
   const st = stato(ev);
-  const op = st === 'programmato' ? 0.5 : st === 'concluso' ? 0.45 : 1;
+  const op = st === 'programmato' && !arrivaNelPeriodo(ev) ? 0.5 : st === 'concluso' ? 0.45 : 1;
   const col = st === 'concluso' ? '#868e96' : t.colore;
   const strati = [];
   for (const el of ev.elementi) {
@@ -295,7 +300,7 @@ async function caricaTelecamere() {
   } catch { avviso('Telecamere non disponibili'); }
 }
 function legenda() {
-  let h = `<b>Eventi</b><span class="lg pieno"></span> tratto interessato <span class="lg puntini"></span> ${PUBBLICO ? 'posizione indicativa (cantieri che si spostano lungo la strada)' : 'evento da verificare (posizione approssimata)'} <span class="lg tratteggio"></span> deviazione <span class="lg sbiadito"></span> non ancora iniziato`;
+  let h = `<b>Eventi</b><span class="lg pieno"></span> tratto interessato <span class="lg puntini"></span> ${PUBBLICO ? 'posizione indicativa (cantieri che si spostano lungo la strada)' : 'evento da verificare (posizione approssimata)'} <span class="lg tratteggio"></span> deviazione ${S.quando === 'settimana' || S.quando === 'periodo' ? '<span class="lg-data">dal 5 ott</span> comincia nel periodo' : S.quando === 'attivi' ? '<span class="lg sbiadito"></span> non ancora iniziato' : ''}`;
   if (mappa.hasLayer(livStrade)) h += `<b>Tipi di strada</b>` + Object.values(TIPI_STRADA).map((t) => `<span class="lg strada" style="border-top-color:${t.colore}"></span> ${t.nome}`).join(' ') + ` <span class="lg strada" style="border-top-color:#ccc"></span> comunali e locali (mappa di base)`;
   if (mappa.hasLayer(sentieri)) h += `<b>Sentieri</b><span class="lg sentiero"></span> sentieri segnati (CAI e reti escursionistiche)`;
   if (mappa.hasLayer(osm)) h += `<b>Mappa di base</b><span class="lg bianca"></span> strade bianche e sterrate`;
@@ -387,16 +392,20 @@ function disegnaTutto() {
   $('#p-dal').value = S.pDal; $('#p-al').value = S.pAl;
   $('#raggruppa').value = S.raggruppa;
   evidenzia();
+  legenda();
   // elenco raggruppato
   const r = intervallo();
-  const nomeQuando = { oggi: 'oggi', domani: 'domani', settimana: 'nei prossimi 7 giorni', attivi: 'in corso e in arrivo', conclusi: 'conclusi',
+  const nomeQuando = { oggi: 'oggi', domani: 'domani', settimana: r ? `da oggi a ${dataLunga(r[1])}` : '', attivi: 'in corso e in arrivo', conclusi: 'conclusi',
     periodo: r ? `dal ${dataBreve(r[0])} al ${dataBreve(r[1])}` : '' }[S.quando];
-  $('#conteggio').textContent = `${vis.length} ${vis.length === 1 ? 'evento' : 'eventi'} ${nomeQuando}`;
+  const nArriva = vis.filter(arrivaNelPeriodo).length;
+  $('#conteggio').textContent = `${vis.length} ${vis.length === 1 ? 'evento' : 'eventi'} ${nomeQuando}`
+    + (nArriva ? `: ${vis.length - nArriva} già in corso, ${nArriva} ${nArriva === 1 ? 'comincia' : 'cominciano'} nel periodo` : '');
   if (!vis.length) {
     $('#lista').innerHTML = `<p class="vuoto">${S.eventi.length ? 'Nessun evento con questi filtri.' : 'Ancora nessun evento. Mandami ordinanze e comunicati in chat e li metto sulla mappa.'}</p>`;
     return;
   }
-  const chiave = { stato: (e) => ({ 'in-corso': '1In corso', programmato: '2In arrivo', concluso: '3Conclusi' }[stato(e)]),
+  const finestra = S.quando === 'settimana' || S.quando === 'periodo';
+  const chiave = { stato: (e) => ({ 'in-corso': finestra && S.quando === 'periodo' ? `1In corso il ${dataBreve(r[0])}` : '1In corso', programmato: finestra ? '2Cominciano nel periodo' : '2In arrivo', concluso: '3Conclusi' }[stato(e)]),
     strada: (e) => ordineStrada(chiaveStrada(e)) + '|' + chiaveStrada(e), comune: (e) => e.comune || 'Fuori territorio',
     tipo: (e) => String(Object.keys(TIPI).indexOf(e.tipo)).padStart(2, '0') + (TIPI[e.tipo]?.nome || e.tipo) }[S.raggruppa];
   const gruppi = new Map();

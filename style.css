@@ -154,6 +154,14 @@ legend { font-size: .78rem; font-weight: 700; color: var(--grigio); text-transfo
   border: 2px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.35); color: #fff;
 }
 .pin.programmato span { opacity: .65; }
+/* "7 giorni" / "Date": evento che comincia nel periodo, pieno e con la data di inizio sotto */
+.pin.arriva { position: relative; }
+.lg-data { display: inline-block; margin: 0 4px 0 8px; font: 700 11px/1 system-ui, sans-serif; color: #1c4f9c; background: #fff; padding: 2px 5px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.pin.arriva em {
+  position: absolute; left: 50%; top: 31px; transform: translateX(-50%); white-space: nowrap;
+  font: 700 11px/1 system-ui, sans-serif; font-style: normal; color: #1c4f9c; background: #fff;
+  padding: 2px 5px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
 .pin.scelto span { transform: scale(1.25); box-shadow: 0 0 0 4px rgba(255,212,59,.9), 0 1px 6px rgba(0,0,0,.4); }
 .capo { background: none; border: 0; font-size: 15px; line-height: 18px; text-align: center; }
 .tappa { background: #fff; border: 3px solid #1f2a44; border-radius: 50%; }
