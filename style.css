@@ -264,3 +264,10 @@ a.btn { display: inline-flex; align-items: center; }
 .allerte.gialla { background: #fffbd6; border-color: #e6d84a; }
 .allerte.arancione { background: #fff0cc; border-color: #f0bf01; }
 .allerte.rossa { background: #ffe3e3; border-color: #fd6767; }
+/* riquadro "In evidenza": chiusure A1 in corso e notizie scritte a mano */
+.evidenza { margin: 8px 0 4px; padding: 8px 12px; border-radius: var(--r); border: 1.5px solid #a5b4d6; background: #eef2fb; font-size: .9rem; }
+.evidenza p { margin: 0 0 2px; }
+.evidenza ul { margin: 4px 0 2px; padding-left: 18px; }
+.evidenza li { margin-bottom: 5px; }
+.evidenza small { color: #5c6577; font-size: .75rem; }
+.evidenza .link { text-align: left; }

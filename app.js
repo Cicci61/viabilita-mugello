@@ -326,7 +326,30 @@ async function carica() {
   S.oggi = oggiISO();
   disegnaTutto();
   caricaAllerte();
+  caricaEvidenza();
   if (!S.sola) caricaCodaFonti();
+}
+
+/* riquadro "In evidenza": chiusure dell'A1 in corso (in automatico, dati Autostrade) + notizie scritte a mano con fonte e scadenza */
+async function caricaEvidenza() {
+  const box = $('#evidenza');
+  const voci = [];
+  for (const ev of S.eventi) {
+    if (chiaveStrada(ev).startsWith('A1') && ev.tipo === 'interruzione' && stato(ev, S.oggi) === 'in-corso') {
+      voci.push(`<li><button type="button" class="link" data-apri="${esc(ev.id)}">⛔ ${esc(ev.titolo)}</button><br><small>${esc(nomeFonte(ev))}${ev.aggiornato ? `, ore ${new Date(ev.aggiornato).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : ''}</small></li>`);
+    }
+  }
+  try {
+    const d = await (await fetch('data/notizie.json', { cache: 'no-store' })).json();
+    for (const n of d.notizie || []) {
+      if ((n.dal || '') > S.oggi || (n.al && n.al < S.oggi)) continue;
+      const f = n.fonte || {};
+      voci.push(`<li><b>${esc(n.titolo)}</b>${n.testo ? `<br>${esc(n.testo)}` : ''}<br><small>${esc([f.ente, f.atto].filter(Boolean).join(', '))}${f.url ? ` · <a href="${esc(f.url)}" target="_blank" rel="noopener">fonte</a>` : ''}${n.al ? ` · fino a ${esc(dataLunga(n.al))}` : ''}</small></li>`);
+    }
+  } catch { /* senza notizie resta solo l'A1 */ }
+  box.innerHTML = voci.length ? `<p><b>📰 In evidenza</b></p><ul>${voci.join('')}</ul>` : '';
+  box.hidden = !voci.length;
+  box.onclick = (e) => { const b = e.target.closest('[data-apri]'); if (b) apriScheda(b.dataset.apri); };
 }
 
 /* allerte meteo-idro: bollettino di criticità della Protezione Civile (zone Mugello-Val di Sieve, Romagna-Toscana, Arno-Firenze) */
