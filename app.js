@@ -333,7 +333,7 @@ async function caricaCodaFonti() {
     $('#b-coda').hidden = !S.coda.length;
     $('#n-coda').textContent = S.coda.length;
     const f = await (await fetch('api/fonti', { cache: 'no-store' })).json();
-    const nomi = { autostrade: 'Autostrade', cm: 'Città Metropolitana', telecamere: 'Telecamere' };
+    const nomi = { autostrade: 'Autostrade', cm: 'Città Metropolitana', telecamere: 'Telecamere', cciss: 'CCISS', 'cm-notizie': 'Comunicati Città Metropolitana' };
     $('#fonti').innerHTML = 'Aggiornamenti automatici: ' + Object.entries(nomi).filter(([k]) => f[k]).map(([k, n]) =>
       `${n} ${f[k].ok ? '✓' : '⚠️'} ${new Date(f[k].ora).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`).join(' · ');
   } catch { /* server vecchio o non raggiungibile */ }
