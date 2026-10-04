@@ -325,7 +325,42 @@ async function carica() {
   }
   S.oggi = oggiISO();
   disegnaTutto();
+  caricaAllerte();
   if (!S.sola) caricaCodaFonti();
+}
+
+/* allerte meteo-idro: bollettino di criticità della Protezione Civile (zone Mugello-Val di Sieve, Romagna-Toscana, Arno-Firenze) */
+async function caricaAllerte() {
+  const box = $('#allerte');
+  try {
+    const a = await (await fetch('data/allerte.json', { cache: 'no-store' })).json();
+    if (!a.zone?.length) return;
+    // il bollettino esce verso le 16: la mattina dopo il suo "domani" è il nostro oggi
+    const giorni = a.giorno === S.oggi ? [['oggi', 'oggi'], ['domani', 'domani']]
+      : piuGiorni(a.giorno, 1) === S.oggi ? [['domani', 'oggi']] : [];
+    const peso = { nessuna: 0, gialla: 1, arancione: 2, rossa: 3 };
+    const righe = [], testi = [];
+    let max = 'nessuna';
+    for (const [chiave, nome] of giorni) {
+      for (const z of a.zone) {
+        const r = Object.entries(z[chiave] || {}).filter(([, l]) => l !== 'nessuna');
+        if (!r.length) continue;
+        const lv = r.reduce((m, [, l]) => (peso[l] > peso[m] ? l : m), 'nessuna');
+        if (peso[lv] > peso[max]) max = lv;
+        testi.push(`${nome.toUpperCase()}, zona ${z.zona} (${z.comuni.join(', ')}): ${r.map(([k, l]) => `allerta ${l} per rischio ${k}`).join(', ')}.`);
+        righe.push(`<li><b>${nome}</b>, ${esc(z.zona)}: ${r.map(([k, l]) => `allerta ${l} per rischio ${k}`).join(', ')}<br><small>${esc(z.comuni.join(', '))}</small></li>`);
+      }
+    }
+    const emesso = new Date(a.emesso).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const fonte = `<small>Protezione Civile, bollettino di criticità del ${esc(emesso)} (CC-BY 4.0) · rischio idraulico, idrogeologico e temporali. Neve, ghiaccio e vento: <a href="https://www.cfr.toscana.it/" target="_blank" rel="noopener">Centro Funzionale Toscana</a></small>`;
+    if (!giorni.length) box.innerHTML = `<p>Bollettino delle allerte non aggiornato.</p>${fonte}`;
+    else if (!righe.length) box.innerHTML = `<p>✓ Nessuna allerta meteo ${giorni.length > 1 ? 'oggi e domani' : 'oggi'}</p>${fonte}`;
+    else box.innerHTML = `<p><b>⚠️ Allerta meteo ${max}</b></p><ul>${righe.join('')}</ul>${fonte}`;
+    // per il bollettino radio: solo se c'è un'allerta
+    S.allerte = testi.length ? `ALLERTA METEO (Protezione Civile, bollettino del ${emesso})\n${testi.join('\n')}` : '';
+    box.className = `allerte ${righe.length ? max : 'nessuna'}`;
+    box.hidden = false;
+  } catch { box.hidden = true; }
 }
 async function caricaCodaFonti() {
   try {
@@ -518,6 +553,7 @@ function bollettino() {
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([c, es]) => `${c.toUpperCase()}\n${es.map((e) => `• ${frase(e)}`).join('\n')}`).join('\n\n');
   };
   let txt = `VIABILITÀ IN MUGELLO E VAL DI SIEVE\nSituazione di ${dataLunga(g, true)}\n\n`;
+  if (S.allerte && g === S.oggi) txt += `${S.allerte}\n\n`;
   txt += attivi.length ? perComune(attivi) : 'Nessuna limitazione in corso tra quelle segnalate.';
   if (arrivo.length) txt += `\n\nIN ARRIVO NEI PROSSIMI 7 GIORNI\n\n${perComune(arrivo)}`;
   apriFinestra('Bollettino viabilità', `<p style="margin:0 0 10px;font-size:.9rem;color:#5c6577">Testo pronto da leggere in radio o da incollare sul sito. Rispetta i filtri attivi (tipo e comune) e il giorno scelto.</p>

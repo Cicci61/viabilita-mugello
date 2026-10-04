@@ -1,0 +1,69 @@
+{
+ "emesso": "2026-10-04T14:11",
+ "giorno": "2026-10-04",
+ "fonte": "Dipartimento della Protezione Civile, Bollettino di criticità nazionale/allerta (CC-BY 4.0)",
+ "url": "https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica",
+ "zone": [
+  {
+   "zona": "Arno-Firenze",
+   "comuni": [
+    "Pontassieve"
+   ],
+   "domani": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   },
+   "oggi": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   }
+  },
+  {
+   "zona": "Mugello-Val di Sieve",
+   "comuni": [
+    "Barberino di Mugello",
+    "Borgo San Lorenzo",
+    "Dicomano",
+    "Londa",
+    "Pelago",
+    "Pontassieve",
+    "Rufina",
+    "San Godenzo",
+    "Scarperia e San Piero",
+    "Vaglia",
+    "Vicchio"
+   ],
+   "domani": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   },
+   "oggi": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   }
+  },
+  {
+   "zona": "Romagna-Toscana",
+   "comuni": [
+    "Firenzuola",
+    "Marradi",
+    "Palazzuolo sul Senio"
+   ],
+   "domani": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   },
+   "oggi": {
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
+    "temporali": "nessuna"
+   }
+  }
+ ],
+ "aggiornato": "2026-10-04T16:58:40"
+}
