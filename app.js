@@ -538,7 +538,10 @@ function apriScheda(id, zoom = true) {
 function mostraSuMappa(ev) {
   vista('mappa', true);
   const b = bordi(ev);
-  if (b.isValid()) mappa.fitBounds(b, { padding: [50, 50], maxZoom: 17 });
+  if (!b.isValid()) return;
+  // sul telefono la mappa era nascosta: prima va ridimensionata, altrimenti lo zoom si calcola su una mappa
+  // larga zero e resta sull'Europa intera (succedeva aprendo un link #e= dalle pagine /strade-chiuse/)
+  setTimeout(() => { mappa.invalidateSize(); mappa.fitBounds(b, { padding: [50, 50], maxZoom: 17 }); }, 80);
 }
 function chiudiScheda() {
   S.scelto = null;
