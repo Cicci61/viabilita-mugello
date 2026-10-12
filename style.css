@@ -271,3 +271,6 @@ a.btn { display: inline-flex; align-items: center; }
 .evidenza li { margin-bottom: 5px; }
 .evidenza small { color: #5c6577; font-size: .75rem; }
 .evidenza .link { text-align: left; }
+
+/* Link al sito personale di Fabio: solo su schermi larghi, sul telefono resta nelle Note legali */
+@media (max-width: 900px) { .firma-fc { display: none !important; } }
