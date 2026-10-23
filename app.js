@@ -233,11 +233,17 @@ function bordi(ev) {
 
 /* ---------- confini, tipi di strada, telecamere ---------- */
 async function caricaGeo() {
+  // i tre file si scaricano insieme (prima uno dopo l'altro: lento sul telefono)
+  await Promise.all([caricaConfini(), caricaStrade(), caricaLocalita()]);
+}
+async function caricaConfini() {
   try {
     S.comuniGeo = await (await fetch('data/comuni.geojson')).json();
     livConfini.addLayer(L.geoJSON(S.comuniGeo, { pane: 'confini', interactive: false,
       style: { color: '#1f2a44', weight: 1.5, opacity: 0.55, dashArray: '5 5', fill: false } }));
   } catch { /* senza confini l'app funziona lo stesso */ }
+}
+async function caricaStrade() {
   try {
     S.stradeGeo = await (await fetch('data/strade.geojson')).json();
     livStrade.addLayer(L.geoJSON(S.stradeGeo, { pane: 'strade',
@@ -251,6 +257,8 @@ async function caricaGeo() {
       }),
     }));
   } catch { /* idem */ }
+}
+async function caricaLocalita() {
   try {
     // località da OpenStreetMap: capoluoghi sempre, paesi da zoom 11, frazioni da zoom 13
     const d = await (await fetch('data/localita.json')).json();
@@ -318,7 +326,7 @@ async function carica() {
     S.eventi = d.eventi; S.aggiornato = d.aggiornato;
   } catch {
     // versione pubblica statica: solo lettura
-    const r = await fetch('data/eventi.json', { cache: 'no-store' });
+    const r = await fetch('data/eventi.json', { cache: 'no-cache' });  // riusa la copia se non è cambiata
     const d = await r.json();
     S.eventi = d.eventi; S.aggiornato = d.aggiornato; S.sola = true;
     document.body.classList.add('sola-lettura');
@@ -494,6 +502,7 @@ function mostraPannello(n) {
   $('#side').scrollTop = 0;
 }
 function apriScheda(id, zoom = true) {
+  if (zoom) S.daInquadrare = null;  // l'evento ha la precedenza sull'inquadratura iniziale
   const ev = S.eventi.find((e) => e.id === id);
   if (!ev) return;
   S.scelto = id;
@@ -810,7 +819,10 @@ function vista(v, soloTelefono = false) {
   if (soloTelefono && !matchMedia('(max-width: 760px)').matches) return;
   document.body.dataset.vista = v;
   document.querySelectorAll('#vista button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  if (v === 'mappa') setTimeout(() => mappa.invalidateSize(), 50);
+  if (v === 'mappa') setTimeout(() => {
+    mappa.invalidateSize();
+    if (S.daInquadrare) { mappa.fitBounds(S.daInquadrare, { padding: [10, 10] }); S.daInquadrare = null; }
+  }, 50);
 }
 function apriFinestra(titolo, html) {
   $('#finestra-titolo').textContent = titolo;
@@ -893,12 +905,17 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.disegn
     const [z, la, lo] = h.get('map').split('/').map(Number);
     if (z && la && lo) mappa.setView([la, lo], z);
   }
-  await caricaGeo();
+  legenda();
+  // sfondo (confini, strade, località) ed eventi si scaricano insieme: la lista non aspetta la mappa
+  await Promise.all([caricaGeo(), carica()]);
   zoomNomi();
   // vista iniziale: tutti i Comuni seguiti, se il link non indica già un punto
-  if (!h.get('map') && !h.get('e') && S.comuniGeo) { const b = L.geoJSON(S.comuniGeo).getBounds(); mappa.fitBounds(b, { padding: [10, 10] }); }
-  legenda();
-  await carica();
+  mappa.invalidateSize();  // la lista appena disegnata può aver cambiato la misura della mappa
+  if (!h.get('map') && !h.get('e') && S.comuniGeo) {
+    const b = L.geoJSON(S.comuniGeo).getBounds();
+    // sul telefono la mappa all'avvio è nascosta (misura 0): si inquadra quando si apre la scheda Mappa
+    if (mappa.getSize().x) mappa.fitBounds(b, { padding: [10, 10] }); else S.daInquadrare = b;
+  }
   if (h.get('e')) apriScheda(h.get('e'));
   // ogni 2 minuti ricarica (i dati automatici cambiano), ma non mentre si modifica
   setInterval(() => { if (!S.bozza && !S.disegno) carica(); }, 120000);
