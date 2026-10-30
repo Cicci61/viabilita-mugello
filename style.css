@@ -223,6 +223,8 @@ dialog::backdrop { background: rgba(20,25,40,.45); }
 .gruppo small { color: var(--grigio); font-weight: 500; }
 .lista ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .auto { display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #5c6577; background: #eef1f7; border-radius: 4px; padding: 2px 6px; margin: 5px 0 0 4px; }
+/* link all'articolo di Radio Mugello sulla stessa chiusura (solo sito pubblico, tools/radiomugello.py) */
+.rm { font-size: .84rem; color: var(--grigio); margin: 12px 0 0; line-height: 1.4; }
 .info { background: #f1f3f8; border: 1px solid #dfe3ec; border-radius: 8px; padding: 8px 10px; font-size: .84rem; margin: 10px 0; color: #3b4352; }
 .legenda { font-size: .78rem; color: var(--grigio); margin: 18px 0 6px; line-height: 1.9; }
 .legenda b { display: block; color: var(--testo); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; margin-top: 6px; }

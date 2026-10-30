@@ -529,6 +529,7 @@ function apriScheda(id, zoom = true) {
       <dt>Fonte</dt><dd>${fonte ? esc(fonte) : '<em>non indicata</em>'}${f.url ? `<br><a href="${esc(f.url)}" target="_blank" rel="noopener">Apri l'atto originale</a>` : ''}</dd>
       <dt>Aggiornato</dt><dd>${ev.aggiornato ? new Date(ev.aggiornato).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '-'}</dd>
     </dl>
+    ${ev.radiomugello ? `<p class="rm">📻 Leggi su Radio Mugello: <a href="${esc(ev.radiomugello.link)}" target="_blank" rel="noopener">${esc(ev.radiomugello.titolo)}</a></p>` : ''}
     <div class="bottoni">
       <button type="button" class="btn" data-az="zoom">Mostra sulla mappa</button>
       <button type="button" class="btn" data-az="testo">Copia testo</button>
