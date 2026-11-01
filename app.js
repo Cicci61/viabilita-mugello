@@ -146,13 +146,14 @@ mappa.getPane('nomi').style.pointerEvents = 'none';
 const livConfini = L.layerGroup();
 const livStrade = L.layerGroup();
 const livCamere = L.layerGroup();
+const livTerremoti = L.layerGroup();
 const sentieri = L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', {
   maxZoom: 18, opacity: 0.85, attribution: 'Sentieri: <a href="https://hiking.waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)',
 });
 L.control.layers(PUBBLICO ? { 'Stradale (OpenStreetMap)': osm, 'Topografica': topo }
   : { 'Stradale (OpenStreetMap)': osm, 'Satellite con strade e nomi': satellite, 'Topografica': topo },
-  PUBBLICO ? { 'Confini comunali': livConfini, 'Tipi di strada a colori': livStrade, 'Sentieri escursionistici': sentieri }
-  : { 'Confini comunali': livConfini, 'Tipi di strada a colori': livStrade, 'Sentieri escursionistici': sentieri, 'Telecamere': livCamere },
+  PUBBLICO ? { 'Confini comunali': livConfini, 'Tipi di strada a colori': livStrade, 'Sentieri escursionistici': sentieri, 'Terremoti (ultimi 30 giorni)': livTerremoti }
+  : { 'Confini comunali': livConfini, 'Tipi di strada a colori': livStrade, 'Sentieri escursionistici': sentieri, 'Terremoti (ultimi 30 giorni)': livTerremoti, 'Telecamere': livCamere },
   { position: 'topright' }).addTo(mappa);
 livConfini.addTo(mappa);
 const livEvidenza = L.layerGroup().addTo(mappa);
@@ -313,6 +314,7 @@ function legenda() {
   if (mappa.hasLayer(sentieri)) h += `<b>Sentieri</b><span class="lg sentiero"></span> sentieri segnati (CAI e reti escursionistiche)`;
   if (mappa.hasLayer(osm)) h += `<b>Mappa di base</b><span class="lg bianca"></span> strade bianche e sterrate`;
   if (mappa.hasLayer(livConfini)) h += ` <span class="lg confine"></span> confini comunali`;
+  if (mappa.hasLayer(livTerremoti)) h += `<b>Terremoti (INGV)</b><span class="lg sisma" style="background:#d0312d"></span> ultime 24 ore <span class="lg sisma" style="background:#f08c00"></span> ultimi 7 giorni <span class="lg sisma" style="background:#adb5bd"></span> ultimi 30 giorni · cerchio più grande = magnitudo più alta`;
   $('#legenda').innerHTML = h;
 }
 
@@ -334,6 +336,7 @@ async function carica() {
   S.oggi = oggiISO();
   disegnaTutto();
   caricaAllerte();
+  caricaTerremoti();
   caricaEvidenza();
   if (!S.sola) caricaCodaFonti();
 }
@@ -391,6 +394,47 @@ async function caricaAllerte() {
     S.allerte = testi.length ? `ALLERTA METEO (Protezione Civile, bollettino del ${emesso})\n${testi.join('\n')}` : '';
     box.className = `allerte ${righe.length ? max : 'nessuna'}`;
     box.hidden = false;
+  } catch { box.hidden = true; }
+}
+/* terremoti: lista dell'INGV (CC-BY 4.0), scosse da magnitudo 1 entro 50 km dal centro del Mugello negli ultimi 30 giorni.
+   Il riquadro mostra gli ultimi 7 giorni, la mappa (livello "Terremoti") tutti e 30. */
+const oraScossa = (t) => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const magnitudo = (m) => Number(m).toFixed(1).replace('.', ',');
+function etaScossa(t) { const h = (Date.now() - new Date(t)) / 3600000; return h < 24 ? 'giorno' : h < 168 ? 'settimana' : 'mese'; }
+async function caricaTerremoti() {
+  const box = $('#terremoti');
+  try {
+    const d = await (await fetch('data/terremoti.json', { cache: 'no-store' })).json();
+    if (!d.scosse) return;
+    const colore = { giorno: '#d0312d', settimana: '#f08c00', mese: '#adb5bd' };
+    livTerremoti.clearLayers();
+    for (const q of [...d.scosse].reverse()) {  // le più recenti sopra
+      L.circleMarker([q.lat, q.lon], { radius: 4 + q.magnitudo * 3, color: '#fff', weight: 1.5, fillColor: colore[etaScossa(q.ora)], fillOpacity: 0.85 })
+        .bindPopup(`<b>Terremoto di magnitudo ${magnitudo(q.magnitudo)}</b><br>${esc(q.luogo)}<br>${esc(oraScossa(q.ora))} · profondità ${esc(String(q.profondita_km).replace('.', ','))} km${q.comune ? `<br>Epicentro nel Comune di ${esc(q.comune)}` : ''}<br><a href="${esc(q.url)}" target="_blank" rel="noopener">Scheda INGV</a>`)
+        .addTo(livTerremoti);
+    }
+    const settimana = d.scosse.filter((q) => etaScossa(q.ora) !== 'mese');
+    S.scosse = settimana;
+    const max = settimana.reduce((m, q) => Math.max(m, q.magnitudo), 0);
+    const fonte = `<small><a href="${esc(d.url)}" target="_blank" rel="noopener">INGV</a> (CC-BY 4.0) · scosse da magnitudo 1 entro ${d.raggio_km} km · <a href="#" data-mappa-sismi>vedi sulla mappa</a></small>`;
+    const righe = settimana.slice(0, 6).map((q) => `<li><a href="#" data-sisma="${q.id}">${q.comune ? '<b>' : ''}M ${magnitudo(q.magnitudo)}, ${esc(q.luogo)}${q.comune ? '</b>' : ''}</a><br><small>${esc(oraScossa(q.ora))} · profondità ${esc(String(q.profondita_km).replace('.', ','))} km</small></li>`);
+    if (settimana.length > 6) righe.push(`<li><small>e altre ${settimana.length - 6} sulla mappa</small></li>`);
+    box.innerHTML = settimana.length ? `<p><b>〰️ Terremoti negli ultimi 7 giorni: ${settimana.length}</b></p><ul>${righe.join('')}</ul>${fonte}`
+      : `<p>✓ Nessun terremoto negli ultimi 7 giorni</p>${fonte}`;
+    box.className = `terremoti ${max >= 4 ? 'forte' : max >= 2.5 ? 'avvertito' : 'nessuno'}`;
+    box.hidden = false;
+    box.onclick = (e) => {
+      const a = e.target.closest('[data-sisma], [data-mappa-sismi]');
+      if (!a) return;
+      e.preventDefault();
+      if (!mappa.hasLayer(livTerremoti)) livTerremoti.addTo(mappa);
+      vista('mappa', true);
+      const q = a.dataset.sisma && d.scosse.find((x) => String(x.id) === a.dataset.sisma);
+      if (q) {
+        mappa.setView([q.lat, q.lon], 11);
+        livTerremoti.eachLayer((m) => { const p = m.getLatLng(); if (p.lat === q.lat && p.lng === q.lon) m.openPopup(); });
+      } else mappa.setView(CENTRO, 9);
+    };
   } catch { box.hidden = true; }
 }
 async function caricaCodaFonti() {
@@ -590,6 +634,9 @@ function bollettino() {
   };
   let txt = `VIABILITÀ IN MUGELLO E VAL DI SIEVE\nSituazione di ${dataLunga(g, true)}\n\n`;
   if (S.allerte && g === S.oggi) txt += `${S.allerte}\n\n`;
+  // terremoti delle ultime 24 ore (INGV): solo nel bollettino di oggi
+  const scosse = g === S.oggi ? (S.scosse || []).filter((q) => etaScossa(q.ora) === 'giorno') : [];
+  if (scosse.length) txt += `TERREMOTI NELLE ULTIME 24 ORE (INGV)\n${scosse.map((q) => `• Magnitudo ${magnitudo(q.magnitudo)} ${oraScossa(q.ora)}, ${q.luogo}, profondità ${String(q.profondita_km).replace('.', ',')} km.`).join('\n')}\n\n`;
   txt += attivi.length ? perComune(attivi) : 'Nessuna limitazione in corso tra quelle segnalate.';
   if (arrivo.length) txt += `\n\nIN ARRIVO NEI PROSSIMI 7 GIORNI\n\n${perComune(arrivo)}`;
   apriFinestra('Bollettino viabilità', `<p style="margin:0 0 10px;font-size:.9rem;color:#5c6577">Testo pronto da leggere in radio o da incollare sul sito. Rispetta i filtri attivi (tipo e comune) e il giorno scelto.</p>

@@ -266,6 +266,17 @@ a.btn { display: inline-flex; align-items: center; }
 .allerte.gialla { background: #fffbd6; border-color: #e6d84a; }
 .allerte.arancione { background: #fff0cc; border-color: #f0bf01; }
 .allerte.rossa { background: #ffe3e3; border-color: #fd6767; }
+/* terremoti INGV degli ultimi 7 giorni, sotto le allerte */
+.terremoti { margin: 8px 0 4px; padding: 8px 12px; border-radius: var(--r); border: 1.5px solid #ced4da; background: #f8f9fa; font-size: .9rem; }
+.terremoti p { margin: 0 0 2px; }
+.terremoti ul { margin: 4px 0 6px; padding-left: 18px; }
+.terremoti li { margin-bottom: 4px; }
+.terremoti li a { color: inherit; text-decoration: none; }
+.terremoti li a:hover { text-decoration: underline; }
+.terremoti small { color: #5c6577; font-size: .75rem; }
+.terremoti.avvertito { background: #fffbd6; border-color: #e6d84a; }
+.terremoti.forte { background: #ffe3e3; border-color: #fd6767; }
+.lg.sisma { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #868e96; }
 /* riquadro "In evidenza": chiusure A1 in corso e notizie scritte a mano */
 .evidenza { margin: 8px 0 4px; padding: 8px 12px; border-radius: var(--r); border: 1.5px solid #a5b4d6; background: #eef2fb; font-size: .9rem; }
 .evidenza p { margin: 0 0 2px; }
