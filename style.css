@@ -276,7 +276,8 @@ a.btn { display: inline-flex; align-items: center; }
 .terremoti small { color: #5c6577; font-size: .75rem; }
 .terremoti.avvertito { background: #fffbd6; border-color: #e6d84a; }
 .terremoti.forte { background: #ffe3e3; border-color: #fd6767; }
-.lg.sisma { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #868e96; }
+.lg.sisma { width: 15px; height: 15px; border-radius: 22%; border: 1.5px solid #fff; box-shadow: 0 0 0 1.5px #1d2330; display: inline-grid; place-items: center; transform: rotate(45deg); }
+.lg.sisma svg { width: 12px; height: 12px; transform: rotate(-45deg); }
 /* riquadro "In evidenza": chiusure A1 in corso e notizie scritte a mano */
 .evidenza { margin: 8px 0 4px; padding: 8px 12px; border-radius: var(--r); border: 1.5px solid #a5b4d6; background: #eef2fb; font-size: .9rem; }
 .evidenza p { margin: 0 0 2px; }
@@ -287,3 +288,35 @@ a.btn { display: inline-flex; align-items: center; }
 
 /* Link al sito personale di Fabio: solo su schermi larghi, sul telefono resta nelle Note legali */
 @media (max-width: 900px) { .firma-fc { display: none !important; } }
+
+/* terremoti: bollino col sismogramma ben evidente (Fabio 01/11/2026, "così come la neve") */
+.sisma-pin { background: none; border: 0; }
+.sisma-pin span { position: relative; width: 100%; height: 100%; border-radius: 22%; display: grid; place-items: center; transform: rotate(45deg) scale(.82);
+  border: 2.5px solid #fff; box-shadow: 0 0 0 2px #1d2330, 0 2px 8px rgba(0,0,0,.5); }
+.sisma-pin svg { width: 70%; height: 70%; transform: rotate(-45deg); }
+.sisma-pin em { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font: 700 11px/1 system-ui, sans-serif;
+  font-style: normal; color: #1d2330; background: #fff; padding: 2px 5px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.35); white-space: nowrap; }
+.sisma-pin.mese span { opacity: .8; }
+.sisma-pin.giorno span::after { content: ""; position: absolute; inset: -6px; border-radius: 22%; border: 3px solid #d0312d; animation: sisma-onda 1.6s ease-out infinite; }
+@keyframes sisma-onda { from { transform: scale(.85); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sisma-pin.giorno span::after { animation: none; opacity: .6; } }
+
+/* legenda dei simboli (Fabio 01/11/2026) */
+.ctrl-legenda { font: 600 13px/1 system-ui, sans-serif; background: #fff; color: var(--blu, #1f2a44); border: 2px solid rgba(0,0,0,.2);
+  border-radius: 8px; padding: 8px 11px; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,.2); }
+.ctrl-legenda:hover { background: #f1f3f7; }
+.simboli { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 4px 22px; }
+.simboli h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--grigio); margin: 12px 0 6px; }
+.simboli ul { list-style: none; margin: 0; padding: 0; }
+.simboli li { display: flex; align-items: center; gap: 12px; padding: 5px 0; font-size: .92rem; line-height: 1.35; }
+.simboli .lp { flex: 0 0 52px; display: flex; justify-content: center; align-items: center; min-height: 34px; }
+.simboli .pin.lp-pin { display: inline-block; }
+.simboli .pin.lp-pin > span { width: 28px; height: 28px; }
+.simboli .sisma-pin.lp-sisma { position: relative; display: inline-block; width: 30px; height: 30px; margin-bottom: 14px; }
+.simboli .lp-capo { font-size: 17px; }
+.simboli .cam.lp-cam { display: inline-block; }
+.simboli .lp-testo { font: 700 11px/1 system-ui, sans-serif; background: #fff; padding: 3px 6px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.simboli .lg-data { margin: 0; white-space: nowrap; }
+.finestra-testa { z-index: 5; }
+#finestra-corpo .nota { font-size: .85rem; color: var(--grigio); margin: 14px 0 0; }
+.chip .pallino.sim { width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11px; line-height: 1; }

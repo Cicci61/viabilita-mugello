@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Storico dei terremoti · Viabilità Mugello</title>
+<meta name="description" content="Tutte le scosse registrate dall'INGV in Mugello e Val di Sieve dal 1985 e i grandi terremoti del passato, con mappa, filtri per Comune e anno.">
+<meta name="theme-color" content="#1f2a44">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+  :root { --blu: #1f2a44; --testo: #1d2330; --grigio: #5c6577; --linea: #e3e7ee; --fondo: #f6f7fa; --giallo: #ffd43b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--testo); background: var(--fondo); }
+  header { background: var(--blu); color: #fff; padding: 14px 16px; }
+  header a { color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+  main { max-width: 980px; margin: 0 auto; padding: 22px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 30px 0 10px; padding-top: 8px; border-top: 1px solid var(--linea); }
+  .piccolo, small { color: var(--grigio); }
+  a { color: #1c55c9; }
+  .numeri { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 18px 0 6px; }
+  .numero { background: #fff; border-radius: 10px; padding: 12px 14px; border: 1px solid var(--linea); }
+  .numero b { display: block; font-size: 1.45rem; line-height: 1.2; }
+  .numero span { color: var(--grigio); font-size: .88rem; }
+  .filtri { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; background: #fff; border: 1px solid var(--linea); border-radius: 10px; padding: 12px 14px; position: sticky; top: 0; z-index: 500; }
+  .filtri label { display: flex; flex-direction: column; font-size: .82rem; color: var(--grigio); gap: 3px; }
+  .filtri select { font: inherit; font-size: .95rem; padding: 6px 8px; border: 1px solid #c9d0dc; border-radius: 7px; background: #fff; color: var(--testo); min-width: 150px; }
+  .filtri .esito { font-size: .92rem; margin-left: auto; align-self: center; }
+  .grafico { display: flex; align-items: flex-end; gap: 2px; height: 150px; background: #fff; border: 1px solid var(--linea); border-radius: 10px; padding: 12px 10px 26px; position: relative; overflow-x: auto; }
+  .barra { flex: 1 0 12px; background: #4c6ef5; border-radius: 3px 3px 0 0; position: relative; cursor: pointer; min-height: 1px; }
+  .barra:hover, .barra.on { background: #f08c00; }
+  .barra i { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%) rotate(-50deg); font-style: normal; font-size: .62rem; color: var(--grigio); white-space: nowrap; }
+  #mappa { height: 420px; border-radius: 10px; border: 1px solid var(--linea); margin-top: 12px; }
+  .legenda { font-size: .85rem; color: var(--grigio); margin: 6px 0 0; }
+  .pallino { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin: 0 3px 0 10px; border: 1px solid rgba(0,0,0,.25); }
+  .tab { overflow-x: auto; background: #fff; border: 1px solid var(--linea); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: #eef1f6; font-weight: 600; white-space: nowrap; }
+  td.m { font-weight: 700; white-space: nowrap; }
+  tr.forte td.m { color: #c92a2a; } tr.sentita td.m { color: #d9480f; }
+  tr.nostra td.luogo { font-weight: 600; }
+  .bottoni { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  button.btn { font: inherit; font-size: .92rem; padding: 7px 12px; border-radius: 8px; border: 1px solid #c9d0dc; background: #fff; cursor: pointer; }
+  button.btn.on { background: var(--blu); color: #fff; border-color: var(--blu); }
+  .nota { background: #fff8e1; border-left: 4px solid var(--giallo); border-radius: 8px; padding: 10px 14px; font-size: .92rem; margin: 12px 0; }
+  .vuoto { padding: 16px; color: var(--grigio); }
+  @media (max-width: 600px) { #mappa { height: 320px; } .filtri { position: static; } .filtri .esito { margin-left: 0; } th.prof, td.prof { display: none; } }
+</style>
+</head>
+<body>
+<header><a href="./"><img src="icons/icon.svg" alt="" width="28" height="28"> ← Torna alla mappa</a></header>
+<main>
+  <h1>Storico dei terremoti</h1>
+  <p class="piccolo">Mugello, Val di Sieve e crinale entro 50 km da Borgo San Lorenzo: tutte le scosse registrate dall'INGV dal 1985 (da magnitudo 1) e i grandi terremoti del passato. Si aggiorna da solo ogni 10 minuti.</p>
+
+  <div class="numeri" id="numeri"><div class="numero"><span>Caricamento…</span></div></div>
+
+  <h2>Scosse registrate dal 1985</h2>
+  <div class="filtri">
+    <label>Dove <select id="f-comune"></select></label>
+    <label>Anno <select id="f-anno"></select></label>
+    <label>Magnitudo <select id="f-mag">
+      <option value="1">da 1 (tutte)</option><option value="2">da 2</option>
+      <option value="2.5">da 2,5 (di solito avvertite)</option><option value="3">da 3</option><option value="4">da 4</option>
+    </select></label>
+    <span class="esito" id="esito"></span>
+  </div>
+
+  <p class="piccolo" style="margin:14px 0 6px">Scosse per anno con i filtri scelti (tocca una barra per vedere quell'anno)</p>
+  <div class="grafico" id="grafico"></div>
+  <div class="nota">Le scosse piccole sono molte di più negli anni recenti perché la rete di sismografi dell'INGV è diventata
+    più fitta e oggi registra anche quelle che prima sfuggivano. Per confrontare anni lontani conviene guardare le scosse da 2,5 in su.</div>
+
+  <div id="mappa" role="application" aria-label="Mappa delle scosse"></div>
+  <p class="legenda">Magnitudo:<span class="pallino" style="background:#adb5bd"></span>meno di 2<span class="pallino" style="background:#fab005"></span>2 – 2,9<span class="pallino" style="background:#f76707"></span>3 – 3,9<span class="pallino" style="background:#e03131"></span>4 e oltre<span class="pallino" style="background:#7048e8"></span>terremoti storici (CPTI15)</p>
+  <div class="bottoni"><button type="button" class="btn" id="b-storici">Mostra sulla mappa i terremoti storici</button></div>
+
+  <div class="bottoni" id="ordine">
+    <button type="button" class="btn on" data-o="data">Le più recenti</button>
+    <button type="button" class="btn" data-o="mag">Le più forti</button>
+  </div>
+  <div class="tab"><table>
+    <thead><tr><th>Data e ora</th><th>Magnitudo</th><th>Epicentro</th><th class="prof">Profondità</th><th>Scheda</th></tr></thead>
+    <tbody id="righe"></tbody>
+  </table></div>
+  <div class="bottoni"><button type="button" class="btn" id="b-altre" hidden>Mostra altre 100</button></div>
+
+  <h2>I grandi terremoti del passato</h2>
+  <p class="piccolo">Dal Catalogo Parametrico dei Terremoti Italiani (CPTI15) dell'INGV: i terremoti dall'anno 1000 al 2020 entro 50 km.
+    Per quelli antichi la magnitudo è stimata dai danni descritti nelle cronache. In grassetto quelli con epicentro nei 14 Comuni.</p>
+  <div class="bottoni" id="soglia-storici">
+    <button type="button" class="btn on" data-s="5">Magnitudo 5 e oltre</button>
+    <button type="button" class="btn" data-s="0">Tutti</button>
+  </div>
+  <div class="tab"><table>
+    <thead><tr><th>Data</th><th>Magnitudo</th><th>Zona</th><th>Distanza</th><th>Scheda</th></tr></thead>
+    <tbody id="storici"></tbody>
+  </table></div>
+
+  <h2>Fonti</h2>
+  <p class="piccolo" id="fonti">Scosse strumentali: <a href="https://terremoti.ingv.it/" target="_blank" rel="noopener">INGV, Istituto Nazionale di Geofisica e Vulcanologia</a>
+    (licenza CC-BY 4.0); i dati possono essere rivisti dall'INGV nei giorni successivi alla scossa e qui si aggiornano da soli.
+    Terremoti storici: <a href="https://emidius.mi.ingv.it/CPTI15-DBMI15/" target="_blank" rel="noopener">INGV, CPTI15 v4.0</a> (CC-BY 4.0),
+    schede dell'archivio ASMI. Mappa © OpenStreetMap. Ore italiane. <a href="note-legali.html">Note legali</a>.</p>
+</main>
+
+<script src="vendor/leaflet.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const mag = (m) => m.toFixed(1).replace('.', ',');
+const ora = (s) => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)} ${s.slice(11, 16)}`;
+const colore = (m) => (m >= 4 ? '#e03131' : m >= 3 ? '#f76707' : m >= 2 ? '#fab005' : '#adb5bd');
+const COMUNI = ['Barberino di Mugello', 'Borgo San Lorenzo', 'Dicomano', 'Firenzuola', 'Londa', 'Marradi', 'Palazzuolo sul Senio',
+  'Pelago', 'Pontassieve', 'Rufina', 'San Godenzo', 'Scarperia e San Piero', 'Vaglia', 'Vicchio'];
+const S = { tutte: [], storici: [], filtrate: [], mostrate: 100, ordine: 'data', sogliaStorici: 5 };
+
+const mappa = L.map('mappa', { preferCanvas: true, scrollWheelZoom: false }).setView([43.975, 11.45], 9);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mappa);
+const livScosse = L.layerGroup().addTo(mappa);
+const livStorici = L.layerGroup();
+fetch('data/comuni.geojson').then((r) => r.json()).then((g) => L.geoJSON(g, { interactive: false, style: { color: '#1f2a44', weight: 1.2, fill: false, opacity: 0.6 } }).addTo(mappa)).catch(() => {});
+
+function filtri() {
+  const c = $('#f-comune').value, a = $('#f-anno').value, m = Number($('#f-mag').value);
+  return (q, conAnno = true) => q.magnitudo >= m && (!conAnno || !a || q.ora.startsWith(a))
+    && (c === 'area' || (c === 'comuni' ? !!q.comune : q.comune === c));
+}
+
+function disegna() {
+  const passa = filtri();
+  S.filtrate = S.tutte.filter((q) => passa(q));
+  if (S.ordine === 'mag') S.filtrate = [...S.filtrate].sort((x, y) => y.magnitudo - x.magnitudo || (y.ora > x.ora ? 1 : -1));
+  S.mostrate = 100;
+  const n = S.filtrate.length;
+  $('#esito').innerHTML = `<b>${n.toLocaleString('it-IT')}</b> ${n === 1 ? 'scossa' : 'scosse'}`;
+
+  // grafico per anno: tutti i filtri tranne l'anno
+  const senzaAnno = S.tutte.filter((q) => passa(q, false));
+  const anni = {};
+  for (let y = 1985; y <= new Date().getFullYear(); y++) anni[y] = 0;
+  for (const q of senzaAnno) anni[q.ora.slice(0, 4)]++;
+  const max = Math.max(1, ...Object.values(anni));
+  const scelto = $('#f-anno').value;
+  $('#grafico').innerHTML = Object.entries(anni).map(([y, v]) =>
+    `<div class="barra${y === scelto ? ' on' : ''}" data-a="${y}" style="height:${(v / max) * 100}%" title="${y}: ${v} ${v === 1 ? 'scossa' : 'scosse'}">${y % 5 === 0 ? `<i>${y}</i>` : ''}</div>`).join('');
+
+  // mappa: al massimo 4000 punti, prima i più forti
+  livScosse.clearLayers();
+  const sullaMappa = [...S.filtrate].sort((x, y) => x.magnitudo - y.magnitudo).slice(-4000);
+  for (const q of sullaMappa) {
+    L.circleMarker([q.lat, q.lon], { radius: 1 + q.magnitudo * q.magnitudo * 0.45, color: '#343a40', weight: 0.5, fillColor: colore(q.magnitudo), fillOpacity: 0.8 })
+      .bindPopup(`<b>Magnitudo ${mag(q.magnitudo)}</b><br>${esc(q.luogo)}<br>${ora(q.ora)} · profondità ${mag(q.profondita_km)} km${q.comune ? `<br>Comune di ${esc(q.comune)}` : ''}<br><a href="https://terremoti.ingv.it/event/${q.id}" target="_blank" rel="noopener">Scheda INGV</a>`)
+      .addTo(livScosse);
+  }
+  righe();
+}
+
+function righe() {
+  const v = S.filtrate.slice(0, S.mostrate);
+  $('#righe').innerHTML = v.length ? v.map((q) =>
+    `<tr class="${q.magnitudo >= 4 ? 'forte' : q.magnitudo >= 2.5 ? 'sentita' : ''}${q.comune ? ' nostra' : ''}"><td>${ora(q.ora)}</td><td class="m">${mag(q.magnitudo)}</td>
+     <td class="luogo">${esc(q.luogo)}</td><td class="prof">${mag(q.profondita_km)} km</td>
+     <td><a href="https://terremoti.ingv.it/event/${q.id}" target="_blank" rel="noopener">INGV</a></td></tr>`).join('')
+    : '<tr><td colspan="5" class="vuoto">Nessuna scossa con questi filtri.</td></tr>';
+  const resto = S.filtrate.length - S.mostrate;
+  $('#b-altre').hidden = resto <= 0;
+  $('#b-altre').textContent = `Mostra altre ${Math.min(100, resto)}`;
+}
+
+function storici() {
+  const v = S.storici.filter((q) => q.magnitudo >= S.sogliaStorici);
+  $('#storici').innerHTML = v.map((q) => `<tr class="${q.magnitudo >= 5.5 ? 'forte' : q.magnitudo >= 5 ? 'sentita' : ''}${q.comune ? ' nostra' : ''}">
+    <td>${esc(q.quando)}</td><td class="m">${mag(q.magnitudo)}</td><td class="luogo">${esc(q.zona)}${q.comune ? ` <small>(Comune di ${esc(q.comune)})</small>` : ''}</td>
+    <td>${q.km_dal_centro} km</td><td><a href="${esc(q.url)}" target="_blank" rel="noopener">ASMI</a></td></tr>`).join('');
+  livStorici.clearLayers();
+  for (const q of S.storici) {
+    L.circleMarker([q.lat, q.lon], { radius: q.magnitudo * q.magnitudo * 0.4, color: '#3b1f8a', weight: 1.2, fillColor: '#7048e8', fillOpacity: 0.35 })
+      .bindPopup(`<b>${esc(q.quando)}, ${esc(q.zona)}</b><br>Magnitudo stimata ${mag(q.magnitudo)} (CPTI15)${q.comune ? `<br>Comune di ${esc(q.comune)}` : ''}<br><a href="${esc(q.url)}" target="_blank" rel="noopener">Scheda ASMI</a>`)
+      .addTo(livStorici);
+  }
+}
+
+function numeri() {
+  const anno = String(new Date().getFullYear());
+  const unAnnoFa = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+  const ultimo = S.tutte.filter((q) => q.ora.slice(0, 10) >= unAnnoFa);
+  const forte = ultimo.reduce((a, q) => (!a || q.magnitudo > a.magnitudo ? q : a), null);
+  const nostre = S.tutte.filter((q) => q.comune && q.ora.startsWith(anno)).length;
+  const ult = S.tutte[0];
+  const top = S.storici.reduce((a, q) => (!a || q.magnitudo > a.magnitudo ? q : a), null);
+  $('#numeri').innerHTML = [
+    [S.tutte.length.toLocaleString('it-IT'), 'scosse registrate dal 1985 entro 50 km'],
+    [`${S.tutte.filter((q) => q.ora.startsWith(anno)).length}`, `scosse nel ${anno}, di cui ${nostre} nei 14 Comuni`],
+    forte && [`M ${mag(forte.magnitudo)}`, `la più forte degli ultimi 12 mesi: ${esc(forte.luogo)}, ${ora(forte.ora).slice(0, 10)}`],
+    ult && [ora(ult.ora).slice(0, 10), `ultima scossa: M ${mag(ult.magnitudo)}, ${esc(ult.luogo)}`],
+    top && [`M ${mag(top.magnitudo)}`, `il più forte della storia: ${esc(top.zona)}, ${esc(top.quando)}`],
+  ].filter(Boolean).map(([b, s]) => `<div class="numero"><b>${b}</b><span>${s}</span></div>`).join('');
+}
+
+async function avvia() {
+  let d;
+  try { d = await (await fetch('data/terremoti-storico.json', { cache: 'no-store' })).json(); } catch { d = null; }
+  if (!d || !d.scosse) { $('#numeri').innerHTML = '<div class="numero"><span>Storico non disponibile in questo momento.</span></div>'; return; }
+  const k = d.campi;
+  S.tutte = d.scosse.map((r) => Object.fromEntries(k.map((c, i) => [c, r[i]])));
+  S.storici = d.storici || [];
+  $('#f-comune').innerHTML = `<option value="area">Tutta l'area (50 km)</option><option value="comuni">Solo i 14 Comuni</option>${COMUNI.map((c) => `<option>${c}</option>`).join('')}`;
+  const anni = [...new Set(S.tutte.map((q) => q.ora.slice(0, 4)))].sort().reverse();
+  $('#f-anno').innerHTML = `<option value="">Tutti dal 1985</option>${anni.map((a) => `<option>${a}</option>`).join('')}`;
+  // dal link: terremoti.html#comune=Marradi&anno=2023&mag=2.5
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('comune')) $('#f-comune').value = h.get('comune');
+  if (h.get('anno')) $('#f-anno').value = h.get('anno');
+  if (h.get('mag')) $('#f-mag').value = h.get('mag');
+  numeri(); storici(); disegna();
+}
+
+for (const id of ['#f-comune', '#f-anno', '#f-mag']) $(id).onchange = disegna;
+$('#grafico').onclick = (e) => { const b = e.target.closest('[data-a]'); if (!b) return; const f = $('#f-anno'); f.value = f.value === b.dataset.a ? '' : b.dataset.a; disegna(); };
+$('#b-altre').onclick = () => { S.mostrate += 100; righe(); };
+$('#ordine').onclick = (e) => { const b = e.target.closest('[data-o]'); if (!b) return; S.ordine = b.dataset.o; document.querySelectorAll('#ordine button').forEach((x) => x.classList.toggle('on', x === b)); disegna(); };
+$('#soglia-storici').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; S.sogliaStorici = Number(b.dataset.s); document.querySelectorAll('#soglia-storici button').forEach((x) => x.classList.toggle('on', x === b)); storici(); };
+$('#b-storici').onclick = () => {
+  const on = mappa.hasLayer(livStorici);
+  if (on) mappa.removeLayer(livStorici); else livStorici.addTo(mappa);
+  $('#b-storici').classList.toggle('on', !on);
+  $('#b-storici').textContent = on ? 'Mostra sulla mappa i terremoti storici' : 'Nascondi i terremoti storici';
+};
+avvia();
+</script>
+<!-- Firma Radio Mugello --><div class="firma-radiomugello" style="clear:both;display:flex;justify-content:center;padding:14px 16px;background:#fff;border-top:1px solid #e3e3e3;font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1d2a44;text-align:center;flex:none"><a href="https://www.radiomugello.it" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:12px;color:#1d2a44;text-decoration:none"><img src="/radio-mugello-99fm.png" alt="Radio Mugello 99 FM" width="48" height="47" style="width:48px;height:auto;flex:none"><span>Realizzato in collaborazione con <b>Radio Mugello</b> <span style="color:#2158e0;text-decoration:underline">www.radiomugello.it</span></span></a></div>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5606d93bd1ac48afb71dadcd7e0191c4"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

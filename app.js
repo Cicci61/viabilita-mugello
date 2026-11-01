@@ -15,6 +15,8 @@ const TIPI = {
   divieto:           { nome: 'Divieti e limitazioni',    colore: '#495057', sim: '🚫' },
   traffico:          { nome: 'Code e rallentamenti',     colore: '#ae3ec9', sim: '🚗' },
 };
+// simbolo dei terremoti (sismogramma), usato sulla mappa e nella legenda
+const SISMOGRAMMA = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1,12 5,12 7.5,6 10.5,19 13.5,3 16.5,16 18.5,12 23,12" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 // tipi di strada (classificazione del grafo della Città Metropolitana): colori dei cartelli stradali
 const TIPI_STRADA = {
   autostrada:  { nome: 'Autostrade', colore: '#2f9e44', peso: 5 },
@@ -156,12 +158,14 @@ L.control.layers(PUBBLICO ? { 'Stradale (OpenStreetMap)': osm, 'Topografica': to
   : { 'Confini comunali': livConfini, 'Tipi di strada a colori': livStrade, 'Sentieri escursionistici': sentieri, 'Terremoti (ultimi 30 giorni)': livTerremoti, 'Telecamere': livCamere },
   { position: 'topright' }).addTo(mappa);
 livConfini.addTo(mappa);
+livTerremoti.addTo(mappa);  // terremoti visibili da subito (Fabio 01/11/2026)
 const livEvidenza = L.layerGroup().addTo(mappa);
 const livNomi = L.layerGroup().addTo(mappa);
 mappa.on('zoomend', zoomNomi);
 mappa.on('overlayadd overlayremove', () => legenda());
 mappa.on('overlayadd', (e) => { if (e.layer === livCamere) caricaTelecamere(); });
 L.control.scale({ imperial: false }).addTo(mappa);
+setTimeout(() => new ControlloLegenda().addTo(mappa));  // la classe è definita più sotto
 const livEventi = L.layerGroup().addTo(mappa);
 const livBozza = L.layerGroup().addTo(mappa);
 const livDisegno = L.layerGroup().addTo(mappa);
@@ -308,14 +312,70 @@ async function caricaTelecamere() {
     }
   } catch { avviso('Telecamere non disponibili'); }
 }
+/* legenda completa dei simboli (richiesta di Fabio 01/11/2026): si apre dal pulsante sulla mappa e da "Legenda" in alto.
+   I simboli sono disegnati con le stesse classi e gli stessi colori della mappa. */
+function lineaLeg(...strati) {
+  return `<svg class="lp-linea" viewBox="0 0 46 16" width="46" height="16" aria-hidden="true">${strati.map((a) =>
+    `<line x1="4" y1="8" x2="42" y2="8" stroke="${a.c}" stroke-width="${a.w}" stroke-opacity="${a.o ?? 1}"${a.d ? ` stroke-dasharray="${a.d}"` : ''} stroke-linecap="${a.cap || 'butt'}"/>`).join('')}</svg>`;
+}
+function legendaSimboli() {
+  const voce = (simbolo, testo) => `<li><span class="lp">${simbolo}</span><span>${testo}</span></li>`;
+  const pinLeg = (col, sim, cl = '') => `<span class="pin lp-pin ${cl}"><span style="background:${col}">${sim}</span></span>`;
+  const sisLeg = (col, eta, m) => `<span class="sisma-pin lp-sisma ${eta}"><span style="background:${col}">${SISMOGRAMMA}</span><em>M ${m}</em></span>`;
+  const t0 = TIPI.lavori;
+  const blocchi = [
+    ['Cosa succede sulla strada', Object.values(TIPI).map((t) => voce(pinLeg(t.colore, t.sim), t.nome))],
+    ['Quando', [
+      voce(pinLeg(t0.colore, t0.sim), 'In corso oggi'),
+      voce(pinLeg(t0.colore, t0.sim, 'programmato'), 'Non ancora iniziato (simbolo sbiadito)'),
+      voce(pinLeg('#868e96', t0.sim), 'Concluso (grigio)'),
+      voce('<span class="lg-data">dal 5 nov</span>', 'Comincia nei giorni scelti (con "7 giorni" o "Date…")'),
+    ]],
+    ['Linee e zone', [
+      voce(lineaLeg({ c: '#1f2a44', w: 11, o: 0.75 }, { c: t0.colore, w: 6 }), 'Tratto di strada interessato, nel colore del tipo di evento'),
+      voce('<span class="lp-capo">⛔</span>', 'Inizio e fine del tratto chiuso'),
+      voce(lineaLeg({ c: '#fff', w: 8, o: 0.35 }, { c: t0.colore, w: 5.5, d: '2 8', cap: 'round' }), PUBBLICO ? 'Posizione indicativa (cantieri che si spostano lungo la strada)' : 'Posizione approssimata, da verificare'),
+      voce(lineaLeg({ c: '#fff', w: 9, o: 0.9 }, { c: '#1c7ed6', w: 5, d: '10 9' }), 'Percorso di deviazione consigliato'),
+      voce(`<svg viewBox="0 0 46 16" width="46" height="16" aria-hidden="true"><rect x="5" y="2" width="36" height="12" rx="2" fill="${t0.colore}" fill-opacity=".22" stroke="${t0.colore}" stroke-width="2.5"/></svg>`, 'Zona interessata (piazza, area, mercato)'),
+    ]],
+    ['Terremoti (INGV)', [
+      voce(sisLeg('#d0312d', 'giorno', '3,2'), 'Scossa nelle ultime 24 ore (l\'onda pulsa)'),
+      voce(sisLeg('#f08c00', 'settimana', '2,1'), 'Scossa negli ultimi 7 giorni'),
+      voce(sisLeg('#868e96', 'mese', '1,4'), 'Scossa negli ultimi 30 giorni'),
+      voce('<span class="lp-testo">M 2,5</span>', 'Magnitudo: più il rombo è grande, più la scossa è forte. Da 2,5 di solito si sente. <a href="terremoti.html">Storico dal 1985</a>'),
+    ]],
+    ['Mappa', [
+      voce(lineaLeg({ c: '#1f2a44', w: 2, d: '6 4' }), 'Confine comunale'),
+      voce(lineaLeg({ c: '#a0522d', w: 3, d: '6 4' }), 'Strada bianca o sterrata'),
+      voce(lineaLeg({ c: '#d6336c', w: 3 }), 'Sentiero segnato (livello "Sentieri escursionistici")'),
+      ...Object.values(TIPI_STRADA).map((t) => voce(lineaLeg({ c: t.colore, w: 4 }), `${t.nome} (livello "Tipi di strada a colori")`)),
+      ...(PUBBLICO ? [] : [voce('<span class="cam lp-cam"><span>📷</span></span>', 'Telecamera (livello "Telecamere")')]),
+    ]],
+  ];
+  return `<div class="simboli">${blocchi.map(([tit, v]) => `<section><h3>${tit}</h3><ul>${v.join('')}</ul></section>`).join('')}</div>
+    <p class="nota">I livelli (confini, tipi di strada, sentieri, terremoti) si accendono e si spengono dal pulsante in alto a destra sulla mappa.</p>`;
+}
+function apriLegenda() { apriFinestra('Legenda dei simboli', legendaSimboli()); }
+const ControlloLegenda = L.Control.extend({
+  options: { position: 'bottomleft' },
+  onAdd() {
+    const b = L.DomUtil.create('button', 'ctrl-legenda');
+    b.type = 'button';
+    b.innerHTML = '<span aria-hidden="true">ⓘ</span> Legenda';
+    L.DomEvent.disableClickPropagation(b);
+    b.onclick = apriLegenda;
+    return b;
+  },
+});
 function legenda() {
   let h = `<b>Eventi</b><span class="lg pieno"></span> tratto interessato <span class="lg puntini"></span> ${PUBBLICO ? 'posizione indicativa (cantieri che si spostano lungo la strada)' : 'evento da verificare (posizione approssimata)'} <span class="lg tratteggio"></span> deviazione ${S.quando === 'settimana' || S.quando === 'periodo' ? '<span class="lg-data">dal 5 ott</span> comincia nel periodo' : S.quando === 'attivi' ? '<span class="lg sbiadito"></span> non ancora iniziato' : ''}`;
   if (mappa.hasLayer(livStrade)) h += `<b>Tipi di strada</b>` + Object.values(TIPI_STRADA).map((t) => `<span class="lg strada" style="border-top-color:${t.colore}"></span> ${t.nome}`).join(' ') + ` <span class="lg strada" style="border-top-color:#ccc"></span> comunali e locali (mappa di base)`;
   if (mappa.hasLayer(sentieri)) h += `<b>Sentieri</b><span class="lg sentiero"></span> sentieri segnati (CAI e reti escursionistiche)`;
   if (mappa.hasLayer(osm)) h += `<b>Mappa di base</b><span class="lg bianca"></span> strade bianche e sterrate`;
   if (mappa.hasLayer(livConfini)) h += ` <span class="lg confine"></span> confini comunali`;
-  if (mappa.hasLayer(livTerremoti)) h += `<b>Terremoti (INGV)</b><span class="lg sisma" style="background:#d0312d"></span> ultime 24 ore <span class="lg sisma" style="background:#f08c00"></span> ultimi 7 giorni <span class="lg sisma" style="background:#adb5bd"></span> ultimi 30 giorni · cerchio più grande = magnitudo più alta`;
-  $('#legenda').innerHTML = h;
+  if (mappa.hasLayer(livTerremoti)) h += `<b>Terremoti (INGV)</b><span class="lg sisma" style="background:#d0312d">${SISMOGRAMMA}</span> ultime 24 ore <span class="lg sisma" style="background:#f08c00">${SISMOGRAMMA}</span> ultimi 7 giorni <span class="lg sisma" style="background:#868e96">${SISMOGRAMMA}</span> ultimi 30 giorni · simbolo più grande = magnitudo più alta · <a href="terremoti.html">storico</a>`;
+  $('#legenda').innerHTML = h + ' <a href="#" data-legenda>Tutti i simboli</a>';
+  $('#legenda [data-legenda]').onclick = (e) => { e.preventDefault(); apriLegenda(); };
 }
 
 /* ---------- caricamento ---------- */
@@ -401,22 +461,30 @@ async function caricaAllerte() {
 const oraScossa = (t) => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const magnitudo = (m) => Number(m).toFixed(1).replace('.', ',');
 function etaScossa(t) { const h = (Date.now() - new Date(t)) / 3600000; return h < 24 ? 'giorno' : h < 168 ? 'settimana' : 'mese'; }
+// simbolo ben evidente (richiesta di Fabio 01/11/2026, "così come la neve"): bollino col sismogramma, più grande se la
+// magnitudo è più alta, magnitudo scritta sotto; le scosse delle ultime 24 ore pulsano
+function iconaSisma(q, col) {
+  const eta = etaScossa(q.ora);
+  const lato = Math.round((eta === 'mese' ? 22 : 28) + q.magnitudo * 4);
+  return L.divIcon({ className: `sisma-pin ${eta}`, iconSize: [lato, lato], iconAnchor: [lato / 2, lato / 2], popupAnchor: [0, -lato / 2],
+    html: `<span style="background:${col}">${SISMOGRAMMA}</span><em>M ${magnitudo(q.magnitudo)}</em>` });
+}
 async function caricaTerremoti() {
   const box = $('#terremoti');
   try {
     const d = await (await fetch('data/terremoti.json', { cache: 'no-store' })).json();
     if (!d.scosse) return;
-    const colore = { giorno: '#d0312d', settimana: '#f08c00', mese: '#adb5bd' };
+    const colore = { giorno: '#d0312d', settimana: '#f08c00', mese: '#868e96' };
     livTerremoti.clearLayers();
     for (const q of [...d.scosse].reverse()) {  // le più recenti sopra
-      L.circleMarker([q.lat, q.lon], { radius: 4 + q.magnitudo * 3, color: '#fff', weight: 1.5, fillColor: colore[etaScossa(q.ora)], fillOpacity: 0.85 })
+      L.marker([q.lat, q.lon], { icon: iconaSisma(q, colore[etaScossa(q.ora)]), riseOnHover: true, zIndexOffset: etaScossa(q.ora) === 'mese' ? 0 : 800 })
         .bindPopup(`<b>Terremoto di magnitudo ${magnitudo(q.magnitudo)}</b><br>${esc(q.luogo)}<br>${esc(oraScossa(q.ora))} · profondità ${esc(String(q.profondita_km).replace('.', ','))} km${q.comune ? `<br>Epicentro nel Comune di ${esc(q.comune)}` : ''}<br><a href="${esc(q.url)}" target="_blank" rel="noopener">Scheda INGV</a>`)
         .addTo(livTerremoti);
     }
     const settimana = d.scosse.filter((q) => etaScossa(q.ora) !== 'mese');
     S.scosse = settimana;
     const max = settimana.reduce((m, q) => Math.max(m, q.magnitudo), 0);
-    const fonte = `<small><a href="${esc(d.url)}" target="_blank" rel="noopener">INGV</a> (CC-BY 4.0) · scosse da magnitudo 1 entro ${d.raggio_km} km · <a href="#" data-mappa-sismi>vedi sulla mappa</a></small>`;
+    const fonte = `<small><a href="${esc(d.url)}" target="_blank" rel="noopener">INGV</a> (CC-BY 4.0) · scosse da magnitudo 1 entro ${d.raggio_km} km · <a href="#" data-mappa-sismi>vedi sulla mappa</a> · <a href="terremoti.html">storico dal 1985</a></small>`;
     const righe = settimana.slice(0, 6).map((q) => `<li><a href="#" data-sisma="${q.id}">${q.comune ? '<b>' : ''}M ${magnitudo(q.magnitudo)}, ${esc(q.luogo)}${q.comune ? '</b>' : ''}</a><br><small>${esc(oraScossa(q.ora))} · profondità ${esc(String(q.profondita_km).replace('.', ','))} km</small></li>`);
     if (settimana.length > 6) righe.push(`<li><small>e altre ${settimana.length - 6} sulla mappa</small></li>`);
     box.innerHTML = settimana.length ? `<p><b>〰️ Terremoti negli ultimi 7 giorni: ${settimana.length}</b></p><ul>${righe.join('')}</ul>${fonte}`
@@ -484,7 +552,7 @@ function disegnaTutto() {
   // tipi, con il conteggio degli eventi che resterebbero scegliendoli
   $('#tipi').innerHTML = Object.entries(TIPI).map(([k, t]) => {
     const n = S.eventi.filter((e) => e.tipo === k && visibile(e, 'tipo')).length;
-    return `<button type="button" class="chip ${S.tipi.has(k) ? 'on' : ''}" data-tipo="${k}"><span class="pallino" style="background:${t.colore}"></span>${t.nome}${n ? ` <b>${n}</b>` : ''}</button>`;
+    return `<button type="button" class="chip ${S.tipi.has(k) ? 'on' : ''}" data-tipo="${k}"><span class="pallino sim" style="background:${t.colore}">${t.sim}</span>${t.nome}${n ? ` <b>${n}</b>` : ''}</button>`;
   }).join('');
   // Comune: tutti i 14, con il numero di eventi
   const nCom = (c) => S.eventi.filter((e) => e.comune === c && visibile(e, 'comune')).length;
@@ -912,6 +980,7 @@ $('#vista').onclick = (e) => { const b = e.target.closest('[data-v]'); if (b) vi
 $('#home').onclick = (e) => { e.preventDefault(); if (S.bozza) return; S.comune = ''; S.strada = ''; S.tipi.clear(); chiudiScheda();
   if (S.comuniGeo) mappa.fitBounds(L.geoJSON(S.comuniGeo).getBounds(), { padding: [10, 10] }); else mappa.setView(CENTRO, 11); };
 $('#b-bollettino').onclick = bollettino;
+$('#b-legenda').onclick = apriLegenda;
 $('#b-cestino').onclick = cestino;
 $('#b-nuovo').onclick = () => { S.scelto = null; apriEditor(nuovoEvento()); };
 $('#finestra-chiudi').onclick = () => $('#finestra').close();
