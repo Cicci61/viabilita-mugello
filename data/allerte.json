@@ -1,6 +1,6 @@
 {
- "emesso": "2026-11-13T14:34",
- "giorno": "2026-11-13",
+ "emesso": "2026-11-14T14:24",
+ "giorno": "2026-11-14",
  "fonte": "Dipartimento della Protezione Civile, Bollettino di criticità nazionale/allerta (CC-BY 4.0)",
  "url": "https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica",
  "zone": [
@@ -10,13 +10,13 @@
     "Pontassieve"
    ],
    "domani": {
-    "idraulico": "gialla",
+    "idraulico": "nessuna",
     "idrogeologico": "nessuna",
     "temporali": "nessuna"
    },
    "oggi": {
-    "idraulico": "gialla",
-    "idrogeologico": "arancione",
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
     "temporali": "nessuna"
    }
   },
@@ -36,13 +36,13 @@
     "Vicchio"
    ],
    "domani": {
-    "idraulico": "gialla",
+    "idraulico": "nessuna",
     "idrogeologico": "nessuna",
     "temporali": "nessuna"
    },
    "oggi": {
-    "idraulico": "gialla",
-    "idrogeologico": "arancione",
+    "idraulico": "nessuna",
+    "idrogeologico": "nessuna",
     "temporali": "nessuna"
    }
   },
@@ -60,10 +60,10 @@
    },
    "oggi": {
     "idraulico": "nessuna",
-    "idrogeologico": "arancione",
+    "idrogeologico": "nessuna",
     "temporali": "nessuna"
    }
   }
  ],
- "aggiornato": "2026-11-14T14:17:52"
+ "aggiornato": "2026-11-14T16:19:38"
 }
