@@ -1,6 +1,6 @@
 {
- "emesso": "2026-11-17T15:19",
- "giorno": "2026-11-17",
+ "emesso": "2026-11-18T15:11",
+ "giorno": "2026-11-18",
  "fonte": "Dipartimento della Protezione Civile, Bollettino di criticità nazionale/allerta (CC-BY 4.0)",
  "url": "https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica",
  "zone": [
@@ -37,7 +37,7 @@
    ],
    "domani": {
     "idraulico": "nessuna",
-    "idrogeologico": "nessuna",
+    "idrogeologico": "gialla",
     "temporali": "nessuna"
    },
    "oggi": {
@@ -55,7 +55,7 @@
    ],
    "domani": {
     "idraulico": "nessuna",
-    "idrogeologico": "nessuna",
+    "idrogeologico": "gialla",
     "temporali": "nessuna"
    },
    "oggi": {
@@ -65,5 +65,5 @@
    }
   }
  ],
- "aggiornato": "2026-11-18T14:17:40"
+ "aggiornato": "2026-11-18T16:19:51"
 }
